@@ -193,40 +193,6 @@ CREATE DATABASE IF NOT EXISTS storerating CHARACTER SET utf8mb4 COLLATE utf8mb4_
 
 ---
 
-## 🔄 Migrating Existing PostgreSQL Data to MySQL (Safe Procedure)
-
-If you have an existing PostgreSQL database containing production data, follow these steps to migrate the data without loss:
-
-1. **Export PostgreSQL Tables as CSV or JSON**:
-   Using `psql` or `pg_dump`:
-   ```bash
-   psql -U postgres -d store_rating_db -c "\copy (SELECT * FROM users) TO 'users.csv' WITH CSV HEADER;"
-   psql -U postgres -d store_rating_db -c "\copy (SELECT * FROM stores) TO 'stores.csv' WITH CSV HEADER;"
-   psql -U postgres -d store_rating_db -c "\copy (SELECT * FROM ratings) TO 'ratings.csv' WITH CSV HEADER;"
-   ```
-2. **Apply Schema to MySQL**:
-   Run the Prisma migration against MySQL so the exact table structures, foreign keys, and indexes exist:
-   ```bash
-   npx prisma migrate deploy
-   ```
-3. **Import Data in Dependency Order** (`users` -> `stores` -> `ratings`):
-   Using MySQL `LOAD DATA INFILE` or a lightweight migration script (e.g. using `pgloader` or a Node.js ETL script):
-   ```sql
-   -- In MySQL:
-   SET FOREIGN_KEY_CHECKS = 0;
-   LOAD DATA LOCAL INFILE 'users.csv' INTO TABLE users FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;
-   LOAD DATA LOCAL INFILE 'stores.csv' INTO TABLE stores FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;
-   LOAD DATA LOCAL INFILE 'ratings.csv' INTO TABLE ratings FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;
-   SET FOREIGN_KEY_CHECKS = 1;
-   ```
-4. **Alternative with pgloader**:
-   A single-command migration from live PostgreSQL to MySQL:
-   ```bash
-   pgloader postgresql://postgres:password@localhost:5432/store_rating_db mysql://root:password@localhost:3306/storerating
-   ```
-
----
-
 ## 🔑 Sample Development Login Credentials
 
 All users log in through the **common login page**: `http://localhost:5173/login`.
