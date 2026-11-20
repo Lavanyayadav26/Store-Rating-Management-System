@@ -1,0 +1,68 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SYSTEM_ADMIN
+  NORMAL_USER
+  STORE_OWNER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(60)
+  email     String   @unique @db.VarChar(191)
+  password  String   @db.VarChar(255)
+  address   String   @db.VarChar(400)
+  role      Role     @default(NORMAL_USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A user who is a store owner can own stores
+  ownedStores Store[]   @relation("StoreOwner")
+  // A normal user can submit ratings
+  ratings     Rating[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(191)
+  address   String   @db.VarChar(400)
+  ownerId   String?
+  owner     User?    @relation("StoreOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ratings   Rating[]
+
+  @@index([name])
+  @@index([ownerId])
+  @@map("stores")
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  userId    String
+  storeId   String
+  rating    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storeId], name: "userId_storeId")
+  @@index([userId])
+  @@index([storeId])
+  @@map("ratings")
+}
